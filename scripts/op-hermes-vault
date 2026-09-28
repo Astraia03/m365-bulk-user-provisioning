@@ -1,0 +1,45 @@
+#!/bin/bash
+# ─────────────────────────────────────────────────────────────────────────────
+# 1Password 服務帳戶相容層：為 `op item get` 自動補上 --vault
+#
+# 問題：以服務帳戶（OP_SERVICE_ACCOUNT_TOKEN）認證時，op 要求 item 參照必須
+#       搭配 --vault，否則回：
+#          a vault query must be provided when this command is called by a
+#          service account. Please specify one either through the --vault flag
+#          or through piped input
+#       但 harness 內部呼叫 op 時不會帶這個旗標。
+#
+# 作法：只在服務帳戶模式、動作為 `item get`、且未自行帶 --vault 時補上。
+#       其他指令原封轉發，行為與真正的 op 完全一致。
+#
+# 安裝：install -m 755 op-hermes-vault ~/.local/bin/op-agent-vault
+#       然後把 harness 的 op 路徑設定指向它
+#       （Hermes：hermes config set vault.onepassword.binary_path <path>）
+# ─────────────────────────────────────────────────────────────────────────────
+set -uo pipefail
+
+REAL_OP="${OP_REAL_BINARY:-/opt/homebrew/bin/op}"
+VAULT_NAME="${OP_DEFAULT_VAULT:-}"   # ← 必填：授權給服務帳戶的那個 vault
+
+if [ -z "$VAULT_NAME" ]; then
+  echo "op-agent-vault: OP_DEFAULT_VAULT 未設定" >&2
+  exit 78
+fi
+
+args=("$@")
+inject=0
+
+if [ -n "${OP_SERVICE_ACCOUNT_TOKEN:-}" ] && [ "${1:-}" = "item" ] && [ "${2:-}" = "get" ]; then
+  inject=1
+  for a in "${args[@]}"; do
+    if [ "$a" = "--vault" ] || [ "$a" = "-v" ]; then inject=0; break; fi
+  done
+fi
+
+if [ "$inject" = "1" ] && [ "${#args[@]}" -ge 3 ]; then
+  out=("${args[0]}" "${args[1]}" "${args[2]}" --vault "$VAULT_NAME")
+  if [ "${#args[@]}" -gt 3 ]; then out+=("${args[@]:3}"); fi
+  exec "$REAL_OP" "${out[@]}"
+fi
+
+exec "$REAL_OP" "${args[@]}"

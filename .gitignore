@@ -1,0 +1,9 @@
+.DS_Store
+*.log
+__pycache__/
+*.pyc
+# 憑證與輸出：永遠不要進 repo
+*.op.env
+.op.env
+*臨時密碼*
+*.eml

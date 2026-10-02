@@ -31,6 +31,11 @@ metadata:
 
 ---
 
+## 網域關卡（P0）
+需要「不用買的網域」時，用免費子網域（如 dynv6）走 M365 網域驗證。
+完整流程與**三個實測坑**（記錄名稱是相對的、MX/CNAME 目標要加結尾點、token 被明文印在頁面上）
+見 `references/domain-gate-dynv6.md`。
+
 ## Phase 0 — 解析需求
 目的：把信件變成一份可執行的規格。
 
@@ -122,6 +127,8 @@ employeeId。要這些得走 Graph API：見 `references/graph-api-post-import.m
   要用服務帳戶 token。細節見 reference。
 - **憑證管線通了不代表資料對**：填入成功但網站拒絕，通常是項目裡的密碼本身錯了。
   用長度／雜湊比對診斷，不要印出字元。
+
+- **免費子網域的 DNS API 有相對名稱陷阱**：記錄 `name` 與 MX/CNAME 的 `data` 都會被接上 zone 名稱；apex 用 `@`，絕對目標結尾要加點。
 
 ## 交接檢查清單
 - [ ] 需求規格已與需求方確認（含矛盾點與無關附件）
